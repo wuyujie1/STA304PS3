@@ -1,0 +1,249 @@
+---
+title: "A Statisical Prediction of 2020 American Federal Election Result Based on Logistic Regression Model and Post-Stratification Method"
+author: "Yutong Wu, Yao He, Yujie Wu, Xinxuan Lin"
+date: "November 2, 2020 "
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document: null
+  word_document: default
+  df_print: paged
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+
+# Loading in the cleaned survey Data
+survey_data <- read_csv("survey_data.csv")
+
+# Loading in the cleaned census Data
+census_data <- read_csv("census_data.csv")
+
+```
+
+# Model
+The United States Presidential election, which happens once every four years, will be held on November 3rd, 2020. Plenty of news medias online are predicting the winner of this 
+election and many (e.g. BBC news and CTV news) of them are saying that Biden has the lead. Here we are also interested in the result of this election and we are going to predict
+it by firstly created a model using the survey data, then perform a post-stratification to a census data set in order to examine our model and make the prediction. In the below
+sections we will explain the details of the model, as well as the details of the post-stratification process.
+
+
+## Model Specifics
+We will be using a logistic regression model to model the proportion of voters who will vote for Donald Trump and another logistic regression model to model the proportion of voters who will vote for Joe Biden. In order to make our models to take more aspects into account, we choose gender, census region, race ethnicity, household income and age as variables to construct our model. The main reason for chosing the logistic regression is that the dependent variables that we are using are both binary variables (vote_trump and vote_biden). We want to make a prediction that to what extend can Trump/Biden win and it really makes no sense if the predicted value is greater than 1 or less than 0. Specifically, the variables we used are: <br />
+
+* "Gender" is a categorical variable with two possible values: "Male" and "Female". The main reason for choosing this variable is that Donald Trump has made some controversial comments about women, which may cause dissatisfaction from women. <br />
+
+* "Census region", which is a categorical variable that consists four possible values: "Midwest", "south", "West" and "Northeast". From the map given by CNN news, we can observe that people from different states have different preferences on the next president. However, there are more than 50 states in US and the number is way more than what we needed. One possible alternative solution is to use the census region. We can clearly see that people from west and east are more trend to vote Biden, while people from the center area are prefer to Trump. <br />
+
+* "Race ethnicity" is a categorical variable with possible values: "White", "Asian (Asian Indian)", "Asian (Vietnamese)", "Asian (Chinese)", "Asian (Korean)", "Asian (Japanese), "Some other race", "Asian (Filipino)", "Asian (Other)", "Pacific Islander (Native Hawaiian)", "American Indian or Alaska Native", "Pacific Islander (Other)", "Pacific Islander (Samoan)" and "Pacific Islander (Guamanian)". This represents the race of a given person and we are choosing this variable since Trump and Biden has totally different race policies. <br />
+
+* "Household income", which is a categorical data, the variables represents different intervals of household income. <br />
+
+* "Age" is a numerical variable that represents the age of given person. <br />
+
+These are the logistic regression models we are using: <br />
+For Trump: <br />
+
+$$ log(\frac{p_{tp}}{1-p_{tp}}) = \beta_0+\beta_1  x_{age}+\beta_2  x_{male}+\beta_3  x_{NE}+\beta_4  x_{S}+\beta_5  x_{W}+\beta_6  x_{ind}+\beta_7 x_{cn}+\beta_8  x_{fil}+\beta_9  x_{jap}+\beta_{10}  x_{kor}+\beta_{11}  x_{oa}+\beta_{12}  x_{vit}$$
+$$+\beta_{13}  x_{baa}+\beta_{14}  x_{gua}+\beta_{15}  x_{h}+\beta_{16}  x_{opi}+\beta_{17}  x_{sa}+\beta_{18}x_{or}+\beta_{19}  x_{w}$$
+$$+\beta_{20}  x_{125000}+\beta_{21}  x_{15000}+\beta_{22}  x_{150000}+\beta_{23}  x_{175000}+\beta_{24}  x_{20000}+\beta_{25}  x_{200000}+\beta_{26}  x_{25000}+\beta_{27}  x_{250000}+\beta_{28}  x_{30000}+\beta_{29}  x_{35000}+\beta_{30}  x_{40000}$$
+$$+\beta_{31}  x_{45000}+\beta_{32}  x_{50000}+\beta_{33}  x_{55000}+\beta_{34}  x_{60000}+\beta_{35}  x_{65000}+\beta_{36}  x_{70000}+\beta_{37}  x_{75000}+\beta_{38}  x_{80000}+\beta_{39}  x_{85000}+\beta_{40}  x_{90000}$$
+$$+\beta_{41}  x_{95000}+\beta_{42}  x_{14999}+ \epsilon$$
+<br />
+For Biden: <br />
+
+$$ log(\frac{p_{bd}}{1-p_{bd}}) = \beta_A+\beta_B  x_{age}+\beta_C  x_{male}+\beta_D  x_{NE}+\beta_E  x_{S}+\beta_F  x_{W}+\beta_G  x_{ind}+\beta_H x_{cn}+\beta_I  x_{fil}+\beta_J  x_{jap}+\beta_{K}  x_{kor}+\beta_{L}  x_{oa}+\beta_{M}  x_{vit}$$
+$$+\beta_{N}  x_{baa}+\beta_{O}  x_{gua}+\beta_{P}  x_{h}+\beta_{Q}  x_{opi}+\beta_{R}  x_{sa}+\beta_{S}x_{or}+\beta_{T}  x_{w}$$
+$$+\beta_{U}  x_{125000}+\beta_{V}  x_{15000}+\beta_{W}  x_{150000}+\beta_{X}  x_{175000}+\beta_{Y}  x_{20000}+\beta_{Z}  x_{200000}+\beta_{AA}  x_{25000}+\beta_{AB}  x_{250000}+\beta_{AC}  x_{30000}+\beta_{AD}  x_{35000}+\beta_{AE}  x_{40000}$$
+$$+\beta_{AF}  x_{45000}+\beta_{AG}  x_{50000}+\beta_{AH}  x_{55000}+\beta_{AI}  x_{60000}+\beta_{AJ}  x_{65000}+\beta_{AK}  x_{70000}+\beta_{AL}  x_{75000}+\beta_{AM}  x_{80000}+\beta_{AN}  x_{85000}+\beta_{AO}  x_{90000}$$
+$$+\beta_{AP}  x_{95000}+\beta_{AQ}  x_{14999}+ \epsilon$$
+
+Where $p_{tp}$ represents the proportion of voters who will vote for Donald Trump and $p_{bd}$ represents the proportion of voters who will vote for Joe Biden. Similarly, $\beta_0$ and $\beta_A$ represents the intercept of the models, and is the probability of voting for Donald Trump/Joe Biden at age 0, gender is female, census_region is Midwest, race ethnicity is American Indian or Alaska Native and the household income within the range of \$100,000 to \$124,999. Additionally, $\beta_1$ and $\beta_B$ represents the slope of the model w.r.t. to age. So, for everyone one unit increase in age, we expect a $\beta_1$ increase in the probability of voting for Donald Trump and $\beta_B$ increase in the probability of voting for Joe Biden.<br />
+<br />
+Similarly,<br />
+<br />
+$\beta_2$ and $\beta_C$ are the slopes of Male for Donald Trump's model and Joe Biden's model respectively. If $\beta_i$ is negative, it means that male has negative effect on the proportion of voters. Positive $\beta_i$ indicates male has positive effect.<br />
+<br />
+$\beta_3$ to $\beta_5$ and $\beta_D$ to $\beta_F$ are the slopes of different census regions for Donald Trump's model and Joe Biden's model respectively. If $\beta_i$ is negative, it means that proportion of voters is inversely proportional to the corresponding census region. Positive $\beta_i$ represents that proportion of voters is proportional to corresponding census region.<br />
+<br />
+$\beta_6$ to $\beta_{19}$ and $\beta_G$ to $\beta_T$ are the slopes of different race ethnicities for Donald Trump's model and Joe Biden's model respectively If $\beta_i$ is negative, it means that proportion of voters is inversely proportional to the corresponding race ethnicity Positive $\beta_i$ represents that proportion of voters is proportional to corresponding race ethnicity.<br />
+<br />
+$\beta_20$ to $\beta_42$ and $\beta_u$ to $\beta_{AQ}$ are the slopes of different household incomes for Donald Trump's model and Joe Biden's model respectively If $\beta_i$ is negative, it means that proportion of voters is inversely proportional to the corresponding household income. Positive $\beta_i$ represents that proportion of voters is proportional to corresponding household income.<br />
+<br />
+$\epsilon$ is the error term of the models.<br />
+
+<br />
+Note that:<br />
+$x_{age}$: the age of respondent.<br />
+$x_{male}$: respondent who was indicated as male in column of sex.<br />
+$x_{NE}$: vector of respondent whose census_region is Northeast.<br />
+$x_{S}$: vector of respondent whose census_region is South.<br />
+$x_{W}$: vector of respondent whose census_region is West.<br />
+$x_{ind}$: vector of respondent whose race_ethnicity is Asian (Asian Indian).<br />
+$x_{cn}$: vector of respondent whose race_ethnicity is Asian (Chinese).<br />
+$x_{fil}$: vector of respondent whose race_ethnicity is Asian (Filipino).<br />
+$x_{jap}$: vector of respondent whose race_ethnicity is Asian (Japanese).<br />
+$x_{kor}$: vector of respondent whose race_ethnicity is Asian (Korean).<br />
+$x_{oa}$: vector of respondent whose race_ethnicity is Asian (Other).<br />
+$x_{vit}$: vector of respondent whose race_ethnicity is Asian (Vietnamese).<br />
+$x_{baa}$: vector of respondent whose race_ethnicity is Black, or African American.<br />
+$x_{gua}$: vector of respondent whose race_ethnicity is Pacific Islander (Guamanian).<br />
+$x_{h}$: vector of respondent whose race_ethnicity is Pacific Islander (Native Hawaiian).<br />
+$x_{opi}$: vector of respondent whose race_ethnicity is Pacific Islander (Other).<br />
+$x_{sa}$: vector of respondent whose race_ethnicity is Pacific Islander (Samoan).<br />
+$x_{or}$: vector of respondent whose race_ethnicity is Some other race.<br />
+$x_{w}$: vector of respondent whose race_ethnicity is White.<br />
+$x_{125000}$: vector of respondent whose household_income is between \$125,000 to \$149,999.<br />
+$x_{15000}$: vector of respondent whose household_income is between \$15,000 to \$19,999.<br />
+$x_{150000}$: vector of respondent whose household_income is between \$150,000 to \$174,999.<br />
+$x_{175000}$: vector of respondent whose household_income is between \$175,000 to \$199,999.<br />
+$x_{20000}$: vector of respondent whose household_income is between \$20,000 to \$24,999.<br />
+$x_{200000}$: vector of respondent whose household_income is between \$200,000 to \$249,999.<br />
+$x_{25000}$: vector of respondent whose household_income is between \$25,000 to \$29,999.<br />
+$x_{250000}$: vector of respondent whose household_income is \$250,000 and above.<br />
+$x_{30000}$: vector of respondent whose household_income is between \$30,000 to \$34,999.<br />
+$x_{35000}$: vector of respondent whose household_income is between \$35,000 to \$39,999.<br />
+$x_{40000}$: vector of respondent whose household_income is between \$40,000 to \$44,999.<br />
+$x_{45000}$: vector of respondent whose household_income is between \$45,000 to \$49,999.<br />
+$x_{50000}$: vector of respondent whose household_income is between \$50,000 to \$54,999.<br />
+$x_{55000}$: vector of respondent whose household_income is between \$55,000 to \$59,999.<br />
+$x_{60000}$: vector of respondent whose household_income is between \$60,000 to \$64,999.<br />
+$x_{65000}$: vector of respondent whose household_income is between \$65,000 to \$69,999.<br />
+$x_{70000}$: vector of respondent whose household_income is between \$70,000 to \$74,999.<br />
+$x_{75000}$: vector of respondent whose household_income is between \$75,000 to \$79,999.<br />
+$x_{80000}$: vector of respondent whose household_income is between \$80,000 to \$84,999.<br />
+$x_{85000}$: vector of respondent whose household_income is between \$85,000 to \$89,999.<br />
+$x_{90000}$: vector of respondent whose household_income is between \$90,000 to \$94,999.<br />
+$x_{95000}$: vector of respondent whose household_income is between \$95,000 to \$99,999.<br />
+$x_{14999}$: vector of respondent whose household_income is Less than $14,999.<br />
+
+
+
+```{r, include=FALSE}
+
+# Creating the Model for Trump
+trump_model <- glm(vote_trump ~ age+gender+census_region+race_ethnicity+household_income, 
+            data=survey_data, family= "binomial")
+
+# Creating the Model for Biden
+biden_model <- glm(vote_biden ~ age+gender+census_region+race_ethnicity+household_income, 
+            data=survey_data, family= "binomial")
+
+# Model Results
+broom::tidy(trump_model)
+broom::tidy(biden_model)
+
+```
+
+```{r,echo=FALSE}
+
+# model for vote_trump
+knitr::kable(broom::tidy(trump_model), caption = "vote_trump")
+
+# model for vote_biden
+knitr::kable(broom::tidy(biden_model), caption = "vote_biden")
+
+ 
+```
+
+## Post-Stratification 
+
+In the above section, we created two models to predict the proportion of voters who will vote Donald Trump and Joe Biden separately. In this section, we will perform post-stratification analyses, which "incorporating population distributions of variables into survey estimates" (R. J. A. Little) for both Trump's model and Biden's model to estimate the proportion of voters who will vote for them. In the analyses, we will group similar unit together in order to reduce the variance. The variables we are using to construct the groups are: age, gender, household_income, race_ethnicity and census_region. <br />
+
+* "Gender": The main reason for choosing this variable is that Donald Trump has made some controversial comments about women, which may cause dissatisfaction from women. <br />
+
+* "Census region": From the map given by CNN news, we can observe that people from different states have different preferences on the next president. However, there are more than 50 states in US and the number is way more than what we needed. One possible alternative solution is to use the census region. We can clearly see that people from west and east are more trend to vote Biden, while people from the center area are prefer to Trump. <br />
+
+* "Race ethnicity": We are choosing this variable since Trump and Biden has totally different race policies. <br />
+
+* "Household income": Donald Trump and Joe Biden has different plans towards American economics. For example, their tax plans are different. The effects of these plans on people from different income level are different and people from different income level may prefer different ones. Thus, we decide to include "Household income" as a factor to split the data.<br />
+
+* "Age": We are choosing this variable since we think younger people pay more attention to immediate benefits while older people usually make long-term plans. <br />
+
+We will then weight each proportion estimate (within each bin) by the respective population size of that bin and sum those values and divide that by the entire population size. 
+
+```{r, include=TRUE, echo=FALSE}
+
+# Here I will perform the post-stratification calculation for Trump model.
+census_data$logodds_estimate <-
+  trump_model %>%
+  predict(newdata = census_data)
+
+census_data$estimate <-
+  exp(census_data$logodds_estimate)/(1+exp(census_data$logodds_estimate))
+
+census_data %>%
+  mutate(alp_predict_prop = estimate*n) %>%
+  summarise(alp_predict_for_Trump = sum(alp_predict_prop)/sum(n))
+
+# Here I will perform the post-stratification calculation for Biden model.
+census_data$logodds_estimate <-
+  biden_model %>%
+  predict(newdata = census_data)
+
+census_data$estimate <-
+  exp(census_data$logodds_estimate)/(1+exp(census_data$logodds_estimate))
+
+census_data %>%
+  mutate(alp_predict_prop = estimate*n) %>%
+  summarise(alp_predict_for_Biden = sum(alp_predict_prop)/sum(n))
+
+
+```
+
+
+# Results
+
+
+
+Based on Table 1, the slope of age is 0.01051 which shows that as age increases, people are more likely to vote for Trump. Moreover, the slope of male is 0.42406 which suggests that men are more likely to vote for Trump. Similarly, the slope of South census region, White and Guamanian race ethnicities, household income from \$175,000 to \$199,999, household income between \$200,000 and \$249,999, and household income above \$250,000 are all positive which indicate that South region people, White and Guamanian people, and people who has income above \$175,000 are more likely to vote for Trump.\newline   
+
+\newline
+Table 2 shows that the slopes for age and male are both negative, likely showing that with the increase of age, most people are in favour of not voting for Biden; this includes most males as well. Moreover, different from Figure 1, except slopes for South region, race of Guamanian and White, and slopes for household income above \$175,000, other slopes of corresponding variable are all positive, which indicate that people who have a household income below \$175,000 are more liable to vote Biden; people who lived outside of the South region, and people whose race are not White or Guamanian are more likely to vote Biden.\newline
+
+\newline
+We applied the post-stratification method to determine the proportion of voters who prefer voting for the Republican Party, and the proportion of voters who are likely to vote for the Democratic Party. It is modelled by the logistic model and is using the respondents' gender, age, household income, census region, and race ethnicity as predictors. According to this analysis, we estimate that the proportion of voters who are inclined to vote for the Republican Party is around 0.370 while the proportion of voters who favoured the Democratic Party is 0.487.\newline
+
+# Discussion
+
+In this study, we use the survey data from Nationscape Data Set to fit two logistic regression models. One for the probability of voting for Trump and the other for the probability of voting for Biden. Then we use the census data from IPUMS data to predict the US election results for both Trump and Biden. The prediction variables that we used include age, gender, household income, race/ethnicity and region. The results show that males, Southern region people, White and Guamanian people as well as rich people (people whose income are higher than \$175,000) are more likely to vote for Trump, while majority of the the rest of the US citizens are more likely to vote for Biden. This actually makes sense according to the previous news and Biden and Trump's election campaign. Trump is a controversial character in both gender equality and race equality since he has some improper words towards these topics. It is not doubtful that females and non-white and non-guamanian people are not in favour of Trump. Meanwhile, Trump is dedicated to cut corporate taxes, which indeed is in the interest of the rich people because the rich tend to enjoy more benefit from the tax cut. In addition to that, Trump is more liked in the south region because Trump's standpoints are like the ones of the southern people. Based on the above reasons, Trump's supporters tend to be males, Southern region people, White and Guamanian people as well as rich people. On the other hand, Biden stands on the opposite side of Trump, and therefore tends to gain votes from citizens other than males, Southern region people, White and Guamanian people as well as rich people.
+
+
+From the model that we fit and the variables that we think may affect the election result, we see that the probability of the public voting for Trump is 0.370 and the probability for Biden is 0.487. With that being said, based on the factors of xxx, the election result might be that Biden wins the election this year, with an about 10% lead.
+
+## Weaknesses & Next Steps
+
+Although we were able to draw conclusions from the data, there is still drawback in our dataset that reduces the accuracy of our models. The race & ethnicity category in our survey data and census data does not perfectly match. Racial categories are not backed by science and therefore it is very hard to categorize people in a way that is inclusive and accurate. Some identify their races biologically while some may identify their races based on their born city. In our case, for example, to match the "two major races" and "three or more major races" in census data with the survey data, we class these races as "Some other race". It is not a scientifically accurate categorization but such bias can not be avoided. Additionally, a significant variable which will influence our model in our data set is that around 10% of the respondents selected "not sure" when being asked about their selection of president. For a further survey, it is essential to compare the estimate results with the actual election results to improve our model for future election. To complete this, we will use the fresh data of the 2020 election result to repeat the process in the model part and compare the outcome. Notice at that point, there will be no individuals who are uncertain about their choice on US presidential election. It would be interesting to find out how and to what extent the uncertainty affect our models. 
+
+# Appendix: Github
+
+https://github.com/wuyujie1/STA304PS3
+
+# References
+
+2020 United States presidential election. (2020, November 02). Retrieved November 01, 2020, from https://en.wikipedia.org/wiki/2020_United_States_presidential_election
+
+Slaughter, G. (2020, October 29). Five days until U.S. election: Polls show Biden leading, but Trump still sees path to victory. Retrieved November 01, 2020, from https://www.ctvnews.ca/world/america-votes/five-days-until-u-s-election-polls-show-biden-leading-but-trump-still-sees-path-to-victory-1.5164757
+
+The Visual and Data Journalism Team. (2020, November 01). US election 2020 polls: Who is ahead - Trump or Biden? Retrieved November 01, 2020, from https://www.bbc.com/news/election-us-2020-53657174
+
+Prasad, R. (2019, November 29). How Trump talks about women - and does it matter? Retrieved November 01, 2020, from https://www.bbc.com/news/world-us-canada-50563106
+
+The Road to 270: Interactive Electoral College maps. (n.d.). Retrieved November 01, 2020, from https://www.cnn.com/election/2020/electoral-college-interactive-maps
+
+Trump and Biden couldn't be more different on the complicated issue of race. (2020, August 18). Retrieved November 01, 2020, from https://www.latimes.com/politics/story/2020-08-06/trump-biden-race-policy
+
+Post-Stratification. (n.d.). Retrieved November 01, 2020, from https://methods.sagepub.com/reference/encyclopedia-of-survey-research-methods/n388.xml
+
+Little, R. J. (1993). Post-Stratification: A Modeler's Perspective [Abstract]. Journal of the American Statistical Association, 88(423), 1001-1012. doi:10.1080/01621459.1993.10476368
+
+Gandel, S. (2020, October 30). Comparing the Biden and Trump tax plans: Will you pay more? Retrieved November 01, 2020, from https://www.cbsnews.com/news/biden-tax-plan-comparison-trump/
+
+Steven Ruggles, Sarah Flood, Ronald Goeken, Josiah Grover, Erin Meyer, Jose Pacas and Matthew Sobek. IPUMS USA: Version 10.0 ACS 2018. Minneapolis, MN: IPUMS, 2020.
+https://doi.org/10.18128/D010.V10.0
+
+Tausanovitch, Chris and Lynn Vavreck. 2020. Democracy Fund + UCLA Nationscape, October 10-17, 2019 (version 20200625). Retrieved from https://www.voterstudygroup.org/publication/nationscape-data-set
+
+U.S. Department of Commerce Economics and Statistics Administration U.S. Census Bureau. (n/a). Census Regions and Divisions of the United States. Retrieved November 2, 2020, from https://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf
+
+Jenée Desmond-Harris, J., & Caswell, E. (2015). The myth of race, debunked in 3 minutes. Vox. https://www.vox.com/2015/1/13/7536655/race-myth-debunked
